@@ -5,7 +5,7 @@ import { ENV } from "./env.js";
 
 export const inngest = new Inngest({ 
     id: "conexus" ,
-    signingKey: ENV.INNGEST_SINGING_KEY,
+    signingKey: ENV.INNGEST_SIGNING_KEY,
 });
 
 const syncUser = inngest.createFunction(
