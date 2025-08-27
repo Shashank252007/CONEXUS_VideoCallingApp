@@ -1,10 +1,12 @@
+import '../instrument.mjs';
 import express from "express";
 import { ENV } from "./config/env.js";
 import {connectDB} from "./config/db.js";
 import {clerkMiddleware} from '@clerk/express';
 import { serve } from "inngest/express";
 import { inngest, functions } from "./config/inngest.js"
-
+import chatRoutes from "./routes/chat.routes.js";
+import * as Sentry from "@sentry/node";
 
 const app = express();
 
@@ -13,10 +15,18 @@ app.use(clerkMiddleware()); // use to add req.auth object
 
 // Set up the "/api/inngest" (recommended) routes with the serve handler
 app.use("/api/inngest", serve({ client: inngest, functions }));
+app.use("/api/chat" , chatRoutes);
+
+app.get("/debug-sentry" , (req , res) => {
+  throw new Error("Test Error Created");
+})
+
+Sentry.setupExpressErrorHandler(app);
 
 app.get('/' , (req , res) => {
     res.send("Hello World , Back End is working");
 });
+
 
 
 export default app;
