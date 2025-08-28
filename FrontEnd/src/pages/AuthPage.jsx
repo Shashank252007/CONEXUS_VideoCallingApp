@@ -6,7 +6,6 @@ import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-reac
 export default function AuthPage() {
   return (
     
-        
       <div className="auth-container">
         <div className="auth-left">
             <div className="auth-hero">
