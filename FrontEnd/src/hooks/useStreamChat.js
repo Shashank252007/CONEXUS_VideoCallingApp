@@ -28,7 +28,7 @@ export const useStreamChat = () => {
 
                 await client.connectUser({
                     id : user.id,
-                    fullName : user.fullName,
+                    name  : user.fullName ?? user.username ?? user.primaryEmailAddress?.emailAddress ?? user.id,
                     image : user.imageUrl
                 });
                 if(!cancelled) setChatClient(client);
