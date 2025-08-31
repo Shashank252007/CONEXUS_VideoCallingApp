@@ -1,7 +1,11 @@
 import { generateStreamToken } from "../config/stream.js";
 
 export const getStreamToken = async ( req , res) => {
+    
     try {
+        
+        
+        console.log("User ID:", req.auth().userId);
         const token = await generateStreamToken(req.auth().userId);
         res.status(200).json({token});
 
