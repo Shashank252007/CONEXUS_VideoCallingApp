@@ -7,6 +7,7 @@ import { serve } from "inngest/express";
 import { inngest, functions } from "./config/inngest.js"
 import chatRoutes from "./routes/chat.routes.js";
 import * as Sentry from "@sentry/node";
+import cors from "cors";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json()); // use to parse the json data
 app.use(clerkMiddleware()); // use to add req.auth object
 
 // Set up the "/api/inngest" (recommended) routes with the serve handler
+app.use(cors({origin : "http://localhost:5173" , credentials : true})); 
 app.use("/api/inngest", serve({ client: inngest, functions }));
 app.use("/api/chat" , chatRoutes);
 

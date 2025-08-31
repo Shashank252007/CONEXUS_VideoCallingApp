@@ -3,6 +3,7 @@ import { ENV } from "./env.js";
 
 const streamClient = StreamChat.getInstance(ENV.STREAM_API_KEY , ENV.STREAM_API_SECRET);
 
+
 export const upsertStreamUser = async (userData) => {
     try {
         await streamClient.upsertUser(userData);
