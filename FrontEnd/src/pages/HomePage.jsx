@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { Children, useEffect } from 'react'
 import { UserButton } from '@clerk/clerk-react';
 import { useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
@@ -18,6 +18,7 @@ import {
   MessageInput,
   Thread,
   Window,
+  messageCodeBlocks,
 } from "stream-chat-react";
 import { HashIcon, PlusIcon, UsersIcon } from "lucide-react";
 
@@ -29,6 +30,8 @@ export default function HomePage() {
   const [searchParams , setSearchParams] = useSearchParams();
 
   const {chatClient , isLoading , error} = useStreamChat();
+
+  
 
   useEffect( () => {
     if(chatClient){
@@ -70,15 +73,63 @@ export default function HomePage() {
               {/*End of Header */}
 
               {/*Add channel button*/}
-               <div className="team-channel-list__content">
+              <div className="team-channel-list__content">
                 <div className="create-channel-section">
                   <button onClick={() => setIsCreateModalOpen(true)} className="create-channel-btn">
                     <PlusIcon className="size-4" />
                     <span>Create Channel</span>
                   </button>
                 </div>
-                </div>
+
+                 {/* Channel list */}
+                  <ChannelList 
+                    filters={{members: { $in: [chatClient.userID] } }}
+                    options={{state: true , watch : true }}
+                    Preview={({ channel }) => (
+                        <CustomChannelPreview
+                          channel={channel}
+                          activeChannel={activeChannel}
+                          setActiveChannel={(channel) => {
+                            setSearchParams({ channel: channel.id });
+                          }}
+                        />
+                    )}
+                    
+
+                    List = { ({children , loading , error}) => (
+                      <div className="channel-sections">
+                        <div className="section-header">
+                          <div className="section-title">
+                            <HashIcon className='size-4'/>
+                            <span>Channels</span>
+                          </div>
+                        </div>
+
+                        {/* Todo : make better loading components */}
+                        {loading && <div className='loading-message'> Loading Channels... </div>}
+                        {error && <div className='error-message'>Error loading Channels... </div>}
+
+                        <div className="channels-list">{children}</div>
+
+                        {/* DM list */}
+                        <div className="section-header direct-messages">
+                          <div className="section-title">
+                            <UsersIcon className="size-4" />
+                            <span>Direct Messages</span>
+                          </div>
+                        </div>
+                        <UsersList activeChannel={activeChannel} />
+                        {/* End of DM list */}
+              
+                      </div>
+                    )}
+                    />
+                  {/* End of Channel list */}
+
+              </div>
               {/* End of Add channel button*/}
+
+             
             </div>
           </div>
           {/* End of left side bar */}

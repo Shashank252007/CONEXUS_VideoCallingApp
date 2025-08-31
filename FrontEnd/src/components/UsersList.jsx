@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { useSearchParams } from "react-router-dom"; // Use react-router-dom
+import { useSearchParams } from "react-router";
 import { useChatContext } from "stream-chat-react";
 
 import * as Sentry from "@sentry/react";
@@ -35,10 +35,15 @@ const UsersList = ({ activeChannel }) => {
     staleTime: 1000 * 60 * 5, // 5 mins
   });
 
+  // staleTime
+  // what it does: tells React Query the data is "fresh" for 5 minutes
+  // behavior: during these 5 minutes, React Query WON'T refetch the data automatically
+
   const startDirectMessage = async (targetUser) => {
     if (!targetUser || !client?.user) return;
 
     try {
+      //  bc stream does not allow channelId to be longer than 64 chars
       const channelId = [client.user.id, targetUser.id].sort().join("-").slice(0, 64);
       const channel = client.channel("messaging", channelId, {
         members: [client.user.id, targetUser.id],
@@ -65,14 +70,18 @@ const UsersList = ({ activeChannel }) => {
     <div className="team-channel-list__users">
       {users.map((user) => {
         const channelId = [client.user.id, user.id].sort().join("-").slice(0, 64);
+        const channel = client.channel("messaging", channelId, {
+          members: [client.user.id, user.id],
+        });
+        const unreadCount = channel.countUnread();
         const isActive = activeChannel && activeChannel.id === channelId;
 
         return (
           <button
             key={user.id}
             onClick={() => startDirectMessage(user)}
-            className={`str-chat__channel-preview-messenger ${
-              isActive ? "!bg-black/20 !hover:bg-black/20 border-l-8 border-purple-500 shadow-lg" : ""
+            className={`str-chat__channel-preview-messenger  ${
+              isActive && "!bg-black/20 !hover:bg-black/20 border-l-8 border-purple-500 shadow-lg0"
             }`}
           >
             <div className="flex items-center gap-2 w-full">
@@ -102,8 +111,11 @@ const UsersList = ({ activeChannel }) => {
                 {user.name || user.id}
               </span>
 
-              {/* The unread count should be handled by a higher-level state management, not calculated here.
-                  This part of the code is likely the source of your infinite loop. */}
+              {unreadCount > 0 && (
+                <span className="flex items-center justify-center ml-2 size-4 text-xs rounded-full bg-red-500 ">
+                  {unreadCount}
+                </span>
+              )}
             </div>
           </button>
         );

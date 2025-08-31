@@ -1,6 +1,7 @@
 import { StreamChat } from "stream-chat";
 import { ENV } from "./env.js";
 
+
 const streamClient = StreamChat.getInstance(ENV.STREAM_API_KEY , ENV.STREAM_API_SECRET);
 
 
@@ -36,7 +37,15 @@ export const generateStreamToken = async (userId) => {
     }
 }
 
-
-
-
+export const addUserToPublicChannel = async (newUserId) => {
+    try {
+        const publicChannel = await streamClient.queryChannels({discoverable : true});
+        for(const channel of publicChannel) {
+            await channel.addMembers([newUserId]);
+        }
+        console.log("User added to public channel successfully");
+    } catch (error) {
+        console.error("Error adding user to public channel : ", error);
+    }
+}
 

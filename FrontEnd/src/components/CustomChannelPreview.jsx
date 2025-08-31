@@ -1,15 +1,19 @@
-import { HashIcon } from "lucide-react";
-import { useChannelStateContext } from "stream-chat-react";
+import React from 'react';
+import { HashIcon} from "lucide-react";
 
-const CustomChannelPreview = ({ channel, setActiveChannel, activeChannel }) => {
-  const { unreadCount } = useChannelStateContext();
-  const isActive = activeChannel && activeChannel.id === channel.id;
-  const isDM = channel.data.member_count === 2 && channel.data.id.includes("user_");
+function CustomChannelPreview( {channel, setActiveChannel, activeChannel} ) {
 
-  if (isDM) return null;
+  const isActive = activeChannel && channel?.id === activeChannel?.id;
+  const isDM = channel.data.member_count === 2 && channel.data.id.includes("user_"); // as clerk's user id starts with 'user_'  , and we will make Dm channels with combination of user ids
+
+  if(isDM) return null; // don't show DM channels in the channel 
+
+  const unreadCount = channel.countUnread;
+
+
 
   return (
-    <button
+   <button
       onClick={() => setActiveChannel(channel)}
       className={`str-chat__channel-preview-messenger transition-colors flex items-center w-full text-left px-4 py-2 rounded-lg mb-1 font-medium hover:bg-blue-50/80 min-h-9 ${
         isActive
@@ -26,7 +30,7 @@ const CustomChannelPreview = ({ channel, setActiveChannel, activeChannel }) => {
         </span>
       )}
     </button>
-  );
-};
+  )
+}
 
-export default CustomChannelPreview;
+export default CustomChannelPreview

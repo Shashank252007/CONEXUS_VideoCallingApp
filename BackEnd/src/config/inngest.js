@@ -3,6 +3,7 @@ import { connectDB } from "./db.js";
 import {User} from "../models/user.model.js"
 import { ENV } from "./env.js";
 import { upsertStreamUser , deleteStreamUser } from "./stream.js";
+import { addUserToPublicChannel } from "./stream.js";
 
 export const inngest = new Inngest({ 
     id: "conexus" ,
@@ -30,7 +31,9 @@ const syncUser = inngest.createFunction(
             id: newUser.clerkId.toString(),
             name: newUser.name,
             image: newUser.image,
-        })
+        });
+
+        await addUserToPublicChannel(newUser.clerkId.toString())
     }
 );
 
@@ -46,6 +49,7 @@ const deleteUserFromDB = inngest.createFunction(
     }
 
 );
+
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [syncUser, deleteUserFromDB];

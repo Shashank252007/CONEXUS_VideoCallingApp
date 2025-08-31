@@ -22,30 +22,37 @@ function CreateChannelModal({onClose}) {
     const {client , setActiveChannel} = useChatContext();
 
     // Fetch users from backend
-    useEffect( () => {
-        const fetchUsers = async () => {
-            if(!client) return;
+    // Fixed code
+useEffect(() => {
+    const fetchUsers = async () => {
+        if (!client) return;
 
-            setLoadingUsers(true);
-            try {
-                const response = await client.queryUsers(
-                    {id : {$ne : client.user.id}}, 
-                    {name : 1},
-                    {limit : 100},
-                );
-                setUsers(response.users || []);
-            } catch (error) {
-                console.error("Error fetching users : ",error);
-                Sentry.captureException(error , {
-                    tags : {component : "CreateChannelModal"},
-                    extra : {clientUserId : client.user.id}
-                });
-                setUsers([]);
-            } finally {
-                setLoadingUsers(false);
-            }
+        setLoadingUsers(true);
+        try {
+            const response = await client.queryUsers(
+                { id: { $ne: client.user.id } },
+                { name: 1 },
+                { limit: 100 },
+            );
+            setUsers(response.users || []);
+        } catch (error) {
+            console.error("Error fetching users: ", error);
+            Sentry.captureException(error, {
+                tags: { component: "CreateChannelModal" },
+                extra: { clientUserId: client.user.id }
+            });
+            setUsers([]);
+        } finally {
+            setLoadingUsers(false);
         }
-    } , [client]);
+
+        fetchUsers();
+    };
+
+    // Call the function to execute it
+    fetchUsers();
+
+}, [client]);
 
 
 // Reset form state when modal is opened on mount
@@ -72,7 +79,7 @@ function CreateChannelModal({onClose}) {
     const handleChannelNameChange = (e) => {
       const value = e.target.value;
       setChannelName(value);
-      setError(validateChannelName(value));
+      setError(validChannelName(value));
     };
 
     const handleMemberToggle = (id) => {
@@ -109,6 +116,7 @@ function CreateChannelModal({onClose}) {
             if(channelType === "private"){
                 channelData.private = true;
                 channelData.visibility = 'private';
+                channelData.members = [client.user.id, ...selectedMembers]; // ensure creator is a member
             } else {
                 channelData.private = false;
                 channelData.visibility = 'public';
