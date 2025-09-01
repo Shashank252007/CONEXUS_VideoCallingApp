@@ -37,15 +37,10 @@ export const generateStreamToken = async (userId) => {
     }
 }
 
-export const addUserToPublicChannel = async (newUserId) => {
-    try {
-        const publicChannel = await streamClient.queryChannels({discoverable : true});
-        for(const channel of publicChannel) {
-            await channel.addMembers([newUserId]);
-        }
-        console.log("User added to public channel successfully");
-    } catch (error) {
-        console.error("Error adding user to public channel : ", error);
-    }
-}
+export const addUserToPublicChannels = async (newUserId) => {
+  const publicChannels = await streamClient.queryChannels({ discoverable: true });
 
+  for (const channel of publicChannels) {
+    await channel.addMembers([newUserId]);
+  }
+};
