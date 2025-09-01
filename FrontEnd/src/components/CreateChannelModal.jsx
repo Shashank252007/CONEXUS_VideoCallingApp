@@ -120,6 +120,8 @@ useEffect(() => {
             } else {
                 channelData.private = false;
                 channelData.visibility = 'public';
+                channelData.discoverable = true;
+                
             }
 
             const channel = client.channel("messaging" , channelId , channelData); // Assign the result
