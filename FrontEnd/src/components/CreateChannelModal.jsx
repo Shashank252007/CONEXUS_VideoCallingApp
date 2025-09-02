@@ -1,155 +1,138 @@
-import React from 'react'
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
-import { useChatContext } from 'stream-chat-react';
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
+import { useChatContext } from "stream-chat-react";
 import * as Sentry from "@sentry/react";
-import toast from 'react-hot-toast';
-import { AlertCircleIcon, HashIcon, LockIcon, PlusIcon, UsersIcon, XIcon } from 'lucide-react';
+import toast from "react-hot-toast";
+import { AlertCircleIcon, HashIcon, LockIcon, UsersIcon, XIcon } from "lucide-react";
 
+const CreateChannelModal = ({ onClose }) => {
+  const [channelName, setChannelName] = useState("");
+  const [channelType, setChannelType] = useState("public");
+  const [description, setDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState("");
+  const [users, setUsers] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [_, setSearchParams] = useSearchParams();
 
-function CreateChannelModal({onClose}) {
+  const { client, setActiveChannel } = useChatContext();
 
-    const [channelName , setChannelName] = useState("");
-    const [channelType , setChannelType] = useState("public");
-    const [description , setDescription] = useState("");   
-    const [isCreating , setIsCreating] = useState(false);
-    const [error , setError] = useState("");
-    const [users , setUsers] = useState([]); 
-    const [selectedMembers , setSelectedMembers] = useState([]);
-    const [loadingUsers , setLoadingUsers] = useState(false);
-    const [_, setSearchParams] = useSearchParams();
-
-    const {client , setActiveChannel} = useChatContext();
-
-    // Fetch users from backend
-    // Fixed code
-useEffect(() => {
+  // fetch users for member selection
+  useEffect(() => {
     const fetchUsers = async () => {
-        if (!client) return;
+      if (!client?.user) return;
+      setLoadingUsers(true);
 
-        setLoadingUsers(true);
-        try {
-            const response = await client.queryUsers(
-                { id: { $ne: client.user.id } },
-                { name: 1 },
-                { limit: 100 },
-            );
-            setUsers(response.users || []);
-        } catch (error) {
-            console.error("Error fetching users: ", error);
-            Sentry.captureException(error, {
-                tags: { component: "CreateChannelModal" },
-                extra: { clientUserId: client.user.id }
-            });
-            setUsers([]);
-        } finally {
-            setLoadingUsers(false);
-        }
+      try {
+        const response = await client.queryUsers(
+          { id: { $ne: client.user.id } },
+          { name: 1 },
+          { limit: 100 }
+        );
 
-        fetchUsers();
+        const usersOnly = response.users.filter((user) => !user.id.startsWith("recording-"));
+
+        setUsers(usersOnly || []);
+      } catch (error) {
+        console.log("Error fetching users");
+        Sentry.captureException(error, {
+          tags: { component: "CreateChannelModal" },
+          extra: { context: "fetch_users_for_channel" },
+        });
+        setUsers([]);
+      } finally {
+        setLoadingUsers(false);
+      }
     };
 
-    // Call the function to execute it
     fetchUsers();
+  }, [client]);
 
-}, [client]);
+  
+  // auto-select all users for public channels
+  useEffect(() => {
+    if (channelType === "public") setSelectedMembers(users.map((u) => u.id));
+    else setSelectedMembers([]);
+  }, [channelType, users]);
 
+  const validateChannelName = (name) => {
+    if (!name.trim()) return "Channel name is required";
+    if (name.length < 3) return "Channel name must be at least 3 characters";
+    if (name.length > 22) return "Channel name must be less than 22 characters";
 
-// Reset form state when modal is opened on mount
-    useEffect( () => {
-        setChannelName("");
-        setDescription("");
-        setChannelType("public");
-        setSelectedMembers([]);
-        setError("");  
-    } , [] );
+    return "";
+  };
 
-    useEffect( () => {
-        if(channelType === "public"){
-            setSelectedMembers(users.map(user => user.id) || []); // all users selected if public
-        }
-    } , [channelType]);
+  const handleChannelNameChange = (e) => {
+    const value = e.target.value;
+    setChannelName(value);
+    setError(validateChannelName(value));
+  };
 
-    const handleCreateChannel = async (event) => {
-        const value = event.target.value;
-        setChannelName(value);
-        setError(validChannelName(value));
+  const handleMemberToggle = (id) => {
+    if (selectedMembers.includes(id)) {
+      setSelectedMembers(selectedMembers.filter((uid) => uid !== id));
+    } else {
+      setSelectedMembers([...selectedMembers, id]);
     }
+  };
 
-    const handleChannelNameChange = (e) => {
-      const value = e.target.value;
-      setChannelName(value);
-      setError(validChannelName(value));
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationError = validateChannelName(channelName);
+    if (validationError) return setError(validationError);
 
-    const handleMemberToggle = (id) => {
-        if(selectedMembers.includes(id)){
-            setSelectedMembers( prevMembers => prevMembers.filter(memberId => memberId !== id));
-        }  else {
-            setSelectedMembers( prevMembers => [...prevMembers , id]);
-        }
+    if (isCreating || !client?.user) return;
+
+    setIsCreating(true);
+    setError("");
+
+    try {
+      // MY COOL CHANNEL !#1 => my-cool-channel-1
+      const channelId = channelName
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-_]/g, "")
+        .slice(0, 20);
+
+      // prepare the channel data
+
+      const channelData = {
+        name: channelName.trim(),
+        created_by_id: client.user.id,
+        members: [client.user.id, ...selectedMembers],
+      };
+
+      if (description) channelData.description = description;
+
+      if (channelType === "private") {
+        channelData.private = true;
+        channelData.visibility = "private";
+        channelData.isPublic = false;
+      } else {
+        channelData.visibility = "public";
+        channelData.discoverable = true;
+        channelData.isPublic = true; // gemini
+        channelData.members = users.map(user => user.id); // gemini
+      }
+
+      const channel = client.channel("messaging", channelId, channelData);
+
+      await channel.watch();
+
+      setActiveChannel(channel);
+      setSearchParams({ channel: channelId });
+
+      toast.success(`Channel "${channelName}" created successfully!`);
+      onClose();
+    } catch (error) {
+      console.log("Error creating the channel", error);
+    } finally {
+      setIsCreating(false);
     }
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        const validationError = validChannelName(channelName);
-        if(validationError){
-            setError(validationError);
-            return;
-        }
-        
-        if(isCreating || !client?.user) return;
-
-        setIsCreating(true);
-        setError("");
-
-        try{
-            const channelId = channelName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g,"").slice(0 , 20);
-            const channelData = {
-                name : channelName.trim(),
-                created_by_id : client.user.id,
-                members : [client.user.id , ...selectedMembers],
-            }
-
-            if(description) channelData.description = description.trim();
-
-            if(channelType === "private"){
-                channelData.private = true;
-                channelData.visibility = 'private';
-                channelData.members = [client.user.id, ...selectedMembers]; // ensure creator is a member
-            } else {
-                channelData.private = false;
-                channelData.visibility = 'public';
-                channelData.discoverable = true;
-                
-            }
-
-            const channel = client.channel("messaging" , channelId , channelData); // Assign the result
-            await channel.watch();
-
-            setActiveChannel(channel);
-            setSearchParams({channel : channel.id});
-
-            toast.success(`Channel ${channelName} created successfully`);
-            onClose();
-        }catch(error){
-            console.error("Error creating channel : ",error);
-            Sentry.captureException(error , {
-                tags : {component : "CreateChannelModal"},
-                extra : {clientUserId : client.user.id}
-            });
-            setError("Error creating channel. Please try again.");
-        }finally{
-            setIsCreating(false);
-        }
-    }
-
-    const validChannelName = (name) => {
-        if(!name.trim()) return "Channel name cannot be empty";
-        if(name.length < 3 || name.length > 22) return "Channel name must be between 3 and 22 characters";
-
-        return "";
-    }
+  };
 
   return (
     <div className="create-channel-modal-overlay">
@@ -317,6 +300,6 @@ useEffect(() => {
       </div>
     </div>
   );
-}
+};
 
 export default CreateChannelModal;

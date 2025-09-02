@@ -38,7 +38,7 @@ export const generateStreamToken = async (userId) => {
 }
 
 export const addUserToPublicChannels = async (newUserId) => {
-  const publicChannels = await streamClient.queryChannels({ discoverable: true });
+  const publicChannels = await streamClient.queryChannels({ isPublic : true });
 
   for (const channel of publicChannels) {
     await channel.addMembers([newUserId]);

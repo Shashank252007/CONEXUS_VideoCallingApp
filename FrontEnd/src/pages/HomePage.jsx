@@ -83,7 +83,12 @@ export default function HomePage() {
 
                  {/* Channel list */}
                   <ChannelList 
-                    filters={{members: { $in: [chatClient.userID] } }}
+                    filters={{ // gemini suggest filter
+                        $or: [
+                          { members: { $in: [chatClient.userID] } }, // Channels the user is a member of
+                          { isPublic: true }, // <-- Your custom property for public channels
+                        ],
+                      }}
                     options={{state: true , watch : true }}
                     Preview={({ channel }) => (
                         <CustomChannelPreview
